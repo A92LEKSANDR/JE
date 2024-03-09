@@ -29,8 +29,12 @@ public:
 		return sprite;
 	}
 
-	void pushBack(sf::Sprite s) {
-		sprite = s;
+	Suit getSuit()const {
+		return m_suit;
+	}
+
+	Rank getRank()const {
+		return m_rank;
 	}
 
 	void setPos(float x, float y) {
@@ -45,7 +49,6 @@ public:
 		window.draw(sprite);
 
 	}
-
 	bool checkCollision(const Card& other) {
 		sf::FloatRect thisCard = sprite.getGlobalBounds();
 		sf::FloatRect otherCard = other.sprite.getGlobalBounds();
@@ -135,6 +138,8 @@ Game::Game() : window(sf::VideoMode(width, height), "Jora", sf::Style::Close) {
 }
 
 void Game::run() {
+	window.setFramerateLimit(60);
+
 	while (window.isOpen()) {
 		processEvents();
 		update();
@@ -173,17 +178,26 @@ void Game::processEvents() {
 #pragma endregion
 #pragma region MOUSE off
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+			//check all card player
 			for (int i = 0; i < player.size(); ++i) {
+				
 				player[i].isDragging = false;
+
 				if (player[i].checkCollision(outDeck.back())) {
-					player[i].setPos(outDeck.back().getSprite().getPosition().x, outDeck.back().getSprite().getPosition().y);
-					draggedIndex = i;
+
+					if (outDeck.back().getSuit() == player[i].getSuit()) {
+						player[i].setPos(outDeck.back().getSprite().getPosition().x, outDeck.back().getSprite().getPosition().y);
+						draggedIndex = i;
+					}
+					else {
+						player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
+						draggedIndex = -1;
+					}
 				}
-				else {
+				else{
 					player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
 					draggedIndex = -1;
 				}
-
 				//BAG 1 in the order of the cards player[i].setRect(i); // id = i; for draw up level
 			}
 		}
@@ -207,6 +221,7 @@ void Game::update() {
 
 				if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
 					newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
+
 					player[i].setPos(newPosition);
 				}
 			}
