@@ -64,6 +64,47 @@ private:
 	Rank m_rank;
 };
 
+//если я пошел то тру, и пока у меня не false
+bool logicGame(std::vector<Card>& player, const std::vector<Card>& outDeck, std::vector<Card>& deck, bool& check) {
+
+	bool playersStep = false;
+
+	switch (outDeck.back().getRank()) {
+	case Card::Ace:
+		playersStep = false;
+		break;
+	case Card::Six:
+		for (int i = 0; i < 2; ++i) {
+			player.push_back(deck[i]);
+			player[i].coordDefaultX += i * 50;
+			player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
+
+			deck.erase(deck.begin() + i);
+		}
+		playersStep = false;
+		break;
+	case Card::Seven:
+		player.push_back(deck.back());
+		player.back().coordDefaultX += 50;
+		player.back().setPos(player.back().coordDefaultX, player.back().coordDefaultY);
+
+		deck.erase(deck.begin() + 1);
+		playersStep = false;
+		break;
+	default:
+		for (auto card : player) {
+			if (card.getRank() == outDeck.back().getRank()) {
+				playersStep = true;
+			}
+			else if (card.getSuit() == outDeck.back().getSuit()) {
+				playersStep = true;
+			}
+			playersStep = false;
+		}
+		break;
+	}
+	return playersStep;
+}
 
 class Game {
 public:
@@ -74,6 +115,7 @@ public:
 		return cardTexture;
 	}
 
+	bool gameCheck = false;
 private:
 	void render();
 	void processEvents();
@@ -184,24 +226,24 @@ void Game::processEvents() {
 				player[i].isDragging = false;
 
 				if (player[i].checkCollision(outDeck.back())) {
-
-					if (outDeck.back().getSuit() == player[i].getSuit()) {
-						player[i].setPos(outDeck.back().getSprite().getPosition().x, outDeck.back().getSprite().getPosition().y);
-						draggedIndex = i;
-					}
-					else {
-						player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
-						draggedIndex = -1;
+					//если здесь есть пересечения и ход игрока то мы в какую то фуну прередаем чтото для логики и выз в метод update()
+					for (int i = 0; i < player.size(); ++i) {
+						if (player[i].getRank() == outDeck.back().getRank()) {
+							gameCheck = true;
+						}
+						else if (player[i].getSuit() == outDeck.back().getSuit()) {
+							gameCheck = true;
+						}
 					}
 				}
 				else{
+					gameCheck = false;
 					player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
 					draggedIndex = -1;
 				}
 				//BAG 1 in the order of the cards player[i].setRect(i); // id = i; for draw up level
 			}
 		}
-
 	}
 #pragma endregion
 }//processEvents();
@@ -221,8 +263,11 @@ void Game::update() {
 
 				if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
 					newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
-
-					player[i].setPos(newPosition);
+					if (logicGame(player,outDeck,deck,gameCheck)) {
+						player[i].setPos(newPosition);
+						//удаляем карту
+					}
+					
 				}
 			}
 			//else {
