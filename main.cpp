@@ -177,6 +177,10 @@ Game::Game() : window(sf::VideoMode(width, height), "Jora", sf::Style::Close) {
 	outDeck.push_back(deck.back());
 	outDeck.back().setPos(550, 300);
 	deck.erase(deck.begin() + deck.size() - 1);
+
+	for (int i = 0; i < deck.size(); ++i) {
+		deck[i].setPos(800, 300);
+	}
 }
 
 void Game::run() {
@@ -221,28 +225,18 @@ void Game::processEvents() {
 #pragma region MOUSE off
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 			//check all card player
-			for (int i = 0; i < player.size(); ++i) {
-				
-				player[i].isDragging = false;
-
-				if (player[i].checkCollision(outDeck.back())) {
-					//если здесь есть пересечения и ход игрока то мы в какую то фуну прередаем чтото для логики и выз в метод update()
-					for (int i = 0; i < player.size(); ++i) {
-						if (player[i].getRank() == outDeck.back().getRank()) {
+				for (int index = 0; index < player.size(); ++index) {
+					if ((player[index].getRank() == outDeck.back().getRank() || player[index].getSuit() == outDeck.back().getSuit())  &&
+						player[index].checkCollision(outDeck.back())) {
 							gameCheck = true;
-						}
-						else if (player[i].getSuit() == outDeck.back().getSuit()) {
-							gameCheck = true;
-						}
 					}
+					else {
+						gameCheck = false;
+						player[index].setPos(player[index].coordDefaultX, player[index].coordDefaultY);
+						draggedIndex = -1;
+					}
+					player[index].isDragging = false;
 				}
-				else{
-					gameCheck = false;
-					player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
-					draggedIndex = -1;
-				}
-				//BAG 1 in the order of the cards player[i].setRect(i); // id = i; for draw up level
-			}
 		}
 	}
 #pragma endregion
@@ -250,38 +244,35 @@ void Game::processEvents() {
 
 void Game::update() {
 	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.
+		for (int i = 0; i < player.size(); ++i) {
+			if (player[i].isDragging) {
+				sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+				sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+				sf::Vector2f newPosition = worldPosition + player[i].offset;
 
-	for (int i = 0; i < player.size(); ++i) {
-		if (player[i].isDragging) {
-			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+				if (mousePosition.x >= 0 && mousePosition.y >= 0 &&
+					mousePosition.x <= width && mousePosition.y <= height) {
 
-			sf::Vector2f newPosition = worldPosition + player[i].offset;
-
-			if (mousePosition.x >= 0 && mousePosition.y >= 0 &&
-				mousePosition.x <= width && mousePosition.y <= height) {
-
-				if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
-					newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
-					if (logicGame(player,outDeck,deck,gameCheck)) {
+					if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
+						newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
 						player[i].setPos(newPosition);
-						//удаляем карту
 					}
-					
 				}
 			}
-			//else {
-			//	player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
-			//	draggedIndex = -1;
-			//}
 		}
-	}
 }
 
 void Game::render() {
 	window.clear();
 
 	outDeck.back().draw(window);
+
+#pragma region DECK
+	for (auto card : deck) {
+		card.draw(window);
+	}
+#pragma endregion
+
 
 #pragma region PLAYER
 	for (int i = 0; i < player.size(); ++i) {
