@@ -205,8 +205,6 @@ void Game::processEvents() {
 			sf::Vector2i pos = sf::Mouse::getPosition(window);
 			sf::Vector2f worldPos = window.mapPixelToCoords(pos);
 
-			int check = 0;
-
 			for (int index = 0; index < player.size(); ++index) {
 				if (player[index].getSprite().getGlobalBounds().contains(worldPos)) {
 					player[index].isDragging = true;
@@ -226,15 +224,6 @@ void Game::processEvents() {
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 			//check all card player
 				for (int index = 0; index < player.size(); ++index) {
-					if ((player[index].getRank() == outDeck.back().getRank() || player[index].getSuit() == outDeck.back().getSuit())  &&
-						player[index].checkCollision(outDeck.back())) {
-							gameCheck = true;
-					}
-					else {
-						gameCheck = false;
-						player[index].setPos(player[index].coordDefaultX, player[index].coordDefaultY);
-						draggedIndex = -1;
-					}
 					player[index].isDragging = false;
 				}
 		}
@@ -243,8 +232,9 @@ void Game::processEvents() {
 }//processEvents();
 
 void Game::update() {
-	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.
-		for (int i = 0; i < player.size(); ++i) {
+	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.	
+	
+	for (int i = 0; i < player.size(); ++i) {
 			if (player[i].isDragging) {
 				sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
 				sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
@@ -256,6 +246,18 @@ void Game::update() {
 					if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
 						newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
 						player[i].setPos(newPosition);
+
+						if(player[i].checkCollision(outDeck.back())) {
+							if (player[i].getRank() == outDeck.back().getRank()) {
+								player[i].setPos(outDeck.back().getSprite().getPosition());
+							}
+
+							//do logic game?
+						}
+						/*else {
+							player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
+							draggedIndex = -1;
+						}*/
 					}
 				}
 			}
