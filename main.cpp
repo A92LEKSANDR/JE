@@ -8,7 +8,7 @@
 
 class Card {
 public:
-	enum Suit { Clubs, Diamonds, Hearts, Spades, CardBack };
+	enum Suit { Clubs, Diamonds, Hearts, Spades };
 	enum Rank { Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King };
 
 	bool isDragging = false;
@@ -54,6 +54,11 @@ public:
 		sf::FloatRect otherCard = other.sprite.getGlobalBounds();
 
 		return thisCard.intersects(otherCard);
+	}
+
+	// Перегрузка оператора ==
+	bool operator==(const Card& other) const {
+		return (m_suit == other.m_suit) && (m_rank == other.m_rank);
 	}
 
 private:
@@ -104,6 +109,23 @@ bool logicGame(std::vector<Card>& player, const std::vector<Card>& outDeck, std:
 		break;
 	}
 	return playersStep;
+}
+
+bool isGoingAboard(const int& width, const int& height, const sf::RenderWindow& window, Card& card, sf::Vector2f& newPos) {
+	sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+	sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+	sf::Vector2f newPosition = worldPosition + card.offset;
+
+	if (mousePosition.x >= 0 && mousePosition.y >= 0 &&
+		mousePosition.x <= width && mousePosition.y <= height) {
+
+		if (newPosition.x + card.getSprite().getLocalBounds().width <= width &&
+			newPosition.y + card.getSprite().getLocalBounds().height <= height) {
+			return false;
+			newPos = newPosition;
+		}
+	}
+	return true;
 }
 
 class Game {
@@ -223,9 +245,26 @@ void Game::processEvents() {
 #pragma region MOUSE off
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 			//check all card player
+
+			std::vector<Card> remove;
 				for (int index = 0; index < player.size(); ++index) {
 					player[index].isDragging = false;
+					if (player[index].checkCollision(outDeck.back())) {
+						player[index].setPos(outDeck.back().getSprite().getPosition());
+
+						outDeck.push_back(player[index]);
+						//push in deck out and this card stan back()
+						remove.push_back(player[index]);
+					}
+					else {
+						player[index].setPos(player[index].coordDefaultX, player[index].coordDefaultY);
+					}
 				}
+
+				for (const auto& card : remove) {
+					player.erase(std::remove(player.begin(), player.end(), card), player.end());
+				}
+				
 		}
 	}
 #pragma endregion
@@ -233,9 +272,10 @@ void Game::processEvents() {
 
 void Game::update() {
 	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.	
-	
 	for (int i = 0; i < player.size(); ++i) {
+		sf::Vector2f Position;
 			if (player[i].isDragging) {
+				
 				sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
 				sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
 				sf::Vector2f newPosition = worldPosition + player[i].offset;
@@ -245,23 +285,14 @@ void Game::update() {
 
 					if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
 						newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
+						
 						player[i].setPos(newPosition);
-
-						if(player[i].checkCollision(outDeck.back())) {
-							if (player[i].getRank() == outDeck.back().getRank()) {
-								player[i].setPos(outDeck.back().getSprite().getPosition());
-							}
-
-							//do logic game?
-						}
-						/*else {
-							player[i].setPos(player[i].coordDefaultX, player[i].coordDefaultY);
-							draggedIndex = -1;
-						}*/
 					}
 				}
+
 			}
-		}
+			
+	}
 }
 
 void Game::render() {
@@ -277,14 +308,22 @@ void Game::render() {
 
 
 #pragma region PLAYER
-	for (int i = 0; i < player.size(); ++i) {
-		if (i != draggedIndex) {
-			player[i].draw(window);
-		}
+
+	if (!player.empty()) {
+			for (int i = 0; i < player.size(); ++i) {
+				if (i != draggedIndex) {
+					player[i].draw(window);
+				}
+			}
+			if (draggedIndex != -1) {
+				player[draggedIndex].draw(window);
+			}
 	}
-	if (draggedIndex != -1) {
-		player[draggedIndex].draw(window);
-	}
+	std::cout << player.size() << '\n';
+	
+
+	//здесь проблема ошибка переполнения
+	
 #pragma endregion
 
 
