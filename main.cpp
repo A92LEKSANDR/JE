@@ -137,7 +137,7 @@ public:
 		return cardTexture;
 	}
 
-	bool gameCheck = false;
+	int collidedCardIndex = -1;
 private:
 	void render();
 	void processEvents();
@@ -245,26 +245,13 @@ void Game::processEvents() {
 #pragma region MOUSE off
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 			//check all card player
-
-			std::vector<Card> remove;
 				for (int index = 0; index < player.size(); ++index) {
 					player[index].isDragging = false;
 					if (player[index].checkCollision(outDeck.back())) {
-						player[index].setPos(outDeck.back().getSprite().getPosition());
-
-						outDeck.push_back(player[index]);
-						//push in deck out and this card stan back()
-						remove.push_back(player[index]);
+						collidedCardIndex = index;
 					}
-					else {
-						player[index].setPos(player[index].coordDefaultX, player[index].coordDefaultY);
-					}
-				}
 
-				for (const auto& card : remove) {
-					player.erase(std::remove(player.begin(), player.end(), card), player.end());
-				}
-				
+				}	
 		}
 	}
 #pragma endregion
@@ -272,8 +259,25 @@ void Game::processEvents() {
 
 void Game::update() {
 	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.	
+	std::vector<Card> remove;
+
+	if (collidedCardIndex != -1) {
+		if (player[collidedCardIndex].getRank() == outDeck.back().getRank() ||
+			player[collidedCardIndex].getSuit() == outDeck.back().getSuit()) {
+
+			player[collidedCardIndex].setPos(outDeck.back().getSprite().getPosition());
+			remove.push_back(player[collidedCardIndex]);
+			collidedCardIndex = -1;
+		}
+		else {
+			player[collidedCardIndex].setPos(player[collidedCardIndex].coordDefaultX, player[collidedCardIndex].coordDefaultY);
+		}
+		for (const auto& card : remove) {
+			player.erase(std::remove(player.begin(), player.end(), card), player.end());
+		}
+	}
+	
 	for (int i = 0; i < player.size(); ++i) {
-		sf::Vector2f Position;
 			if (player[i].isDragging) {
 				
 				sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
@@ -306,27 +310,11 @@ void Game::render() {
 	}
 #pragma endregion
 
-
 #pragma region PLAYER
-
-	if (!player.empty()) {
-			for (int i = 0; i < player.size(); ++i) {
-				if (i != draggedIndex) {
-					player[i].draw(window);
-				}
-			}
-			if (draggedIndex != -1) {
-				player[draggedIndex].draw(window);
-			}
-	}
-	std::cout << player.size() << '\n';
-	
-
-	//здесь проблема ошибка переполнения
-	
+		for (int i = 0; i < player.size(); ++i) {
+			player[i].draw(window);
+		}
 #pragma endregion
-
-
 
 	// Отрисовка объектов игры
 	window.display();
