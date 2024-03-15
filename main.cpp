@@ -221,9 +221,8 @@ void Game::processEvents() {
 		if (event.type == sf::Event::Closed) {
 			window.close();
 		}
-#pragma region MOUSE on
+#pragma region MOUSE on //помечаю карту которую будем двигать мышью isDragging = true у одной карты
 		if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-
 			sf::Vector2i pos = sf::Mouse::getPosition(window);
 			sf::Vector2f worldPos = window.mapPixelToCoords(pos);
 
@@ -242,7 +241,8 @@ void Game::processEvents() {
 			}
 		}
 #pragma endregion
-#pragma region MOUSE off
+
+#pragma region MOUSE off /*все карты isDragging = false и collidedCardIndex = индексу карты которая пересеклась с отбоем*/
 		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 			//check all card player
 				for (int index = 0; index < player.size(); ++index) {
@@ -250,7 +250,6 @@ void Game::processEvents() {
 					if (player[index].checkCollision(outDeck.back())) {
 						collidedCardIndex = index;
 					}
-
 				}	
 		}
 	}
@@ -259,44 +258,50 @@ void Game::processEvents() {
 
 void Game::update() {
 	// Логика обновления игры, обработка ввода, изменение состояний объектов и т.д.	
-	std::vector<Card> remove;
-
+	
+	std::vector<Card> removeCardTemp;
+	//есть пересечение карты на отбой одной, то положение карты меняем с учетом условий и удаляем ее из player
 	if (collidedCardIndex != -1) {
 		if (player[collidedCardIndex].getRank() == outDeck.back().getRank() ||
 			player[collidedCardIndex].getSuit() == outDeck.back().getSuit()) {
 
 			player[collidedCardIndex].setPos(outDeck.back().getSprite().getPosition());
-			remove.push_back(player[collidedCardIndex]);
+
+			outDeck.push_back(player[collidedCardIndex]);
+
+			removeCardTemp.push_back(player[collidedCardIndex]);
 			collidedCardIndex = -1;
 		}
 		else {
 			player[collidedCardIndex].setPos(player[collidedCardIndex].coordDefaultX, player[collidedCardIndex].coordDefaultY);
+
 		}
-		for (const auto& card : remove) {
+
+		for (const auto& card : removeCardTemp) {
 			player.erase(std::remove(player.begin(), player.end(), card), player.end());
 		}
 	}
-	
+
 	for (int i = 0; i < player.size(); ++i) {
-			if (player[i].isDragging) {
-				
-				sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-				sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
-				sf::Vector2f newPosition = worldPosition + player[i].offset;
+		if (player[i].isDragging) {
 
-				if (mousePosition.x >= 0 && mousePosition.y >= 0 &&
-					mousePosition.x <= width && mousePosition.y <= height) {
+			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+			sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+			sf::Vector2f newPosition = worldPosition + player[i].offset;
 
-					if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
-						newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
-						
-						player[i].setPos(newPosition);
-					}
+			if (mousePosition.x >= 0 && mousePosition.y >= 0 &&
+				mousePosition.x <= width && mousePosition.y <= height) {
+
+				if (newPosition.x + player[i].getSprite().getLocalBounds().width <= width &&
+					newPosition.y + player[i].getSprite().getLocalBounds().height <= height) {
+
+					player[i].setPos(newPosition);
 				}
-
 			}
-			
+
+		}
 	}
+
 }
 
 void Game::render() {
