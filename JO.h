@@ -68,8 +68,6 @@ public:
 		}
         deck = creatingDeck(cardTexture);
 
-       
-
         for (int i = 0; i < 3; ++i) {
             player.cards.push_back(pushCardGamers());
             cpu.cards.push_back(pushCardGamers());
@@ -94,11 +92,41 @@ public:
                 }
             }
 #pragma region LOGIC GAME
-            /*while (!player.isEmptyCards() || cpu.isEmptyCards()) {
-                if (player.cards.size() == 0) {
-                    gameOver();
+            //сделать рандомом. когда игра запускаеться или когда
+            bool isPlayerTurn = true;
+
+            while (!player.isEmptyCards() || cpu.isEmptyCards()) {
+                
+                if (isPlayerTurn) {
+                    switch (withdrawal.back().getRank()) {
+                    case Card::Ace:
+                        break;
+                    case Card::Six:
+                        player.cards.push_back(pushCardGamers());
+                        player.cards.push_back(pushCardGamers());
+                        break;
+                    case Card::Seven:
+                        cpu.cards.push_back(pushCardGamers());
+                        break;
+                    default:  player.attack(withdrawal.back()); break;
+                    }
                 }
-            }*/
+                else {
+                    switch (withdrawal.back().getRank()) {
+                    case Card::Ace:
+                        break;
+                    case Card::Six:
+                        player.cards.push_back(pushCardGamers());
+                        player.cards.push_back(pushCardGamers());
+                        break;
+                    case Card::Seven:
+                        cpu.cards.push_back(pushCardGamers());
+                        break;
+                    default:  player.attack(withdrawal.back());
+                    }
+                }
+                isPlayerTurn = !isPlayerTurn;
+            }
 #pragma endregion
 
 #pragma region RENDER()
