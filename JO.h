@@ -98,7 +98,7 @@ public:
         withdrawal.back().setPos(0, 0);//(500, 380);
 
         for (int i = 0; i < deck.size(); ++i) {
-            deck[i].setPos(0 + i * 20, 400);
+            deck[i].setPos(800, 400);
         }
     }
 
@@ -114,10 +114,21 @@ void run() {
                 if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                     sf::Vector2i pos = sf::Mouse::getPosition(window);
                     sf::Vector2f worldPos = window.mapPixelToCoords(pos);
-
+#pragma region DECK
+                    for (int i = 0; i < player.cards.size(); ++i) {
+                        if (player.cards[i].getRank() != withdrawal.back().getRank() ||
+                            player.cards[i].getSuit() != withdrawal.back().getSuit()) {
+                            if (deck.back().getSprite().getGlobalBounds().contains(worldPos)) {
+                                deck.back().offset = deck.back().getSprite().getPosition() - worldPos;
+                                deck.back().isDragging = true;
+                            }
+                        }
+                    }
+#pragma endregion
+#pragma region PLAYER
                     for (int index = 0; index < player.cards.size(); ++index) {
                         if (player.cards[index].getSprite().getGlobalBounds().contains(worldPos)) {
-
+                            
                             player.cards[index].isDragging = true;
                             draggedIndex = index;
 
@@ -130,13 +141,10 @@ void run() {
                             }
                         }
                     }
+#pragma endregion
                 }
                 /*блок когда мышь опущена, здесь перемещаем нашу карту с условием, если подходит иначе назад*/
                 else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-                    if (player.cards.empty()) {
-                            gameOver();
-                    }
-                    else {
                         for (int i = 0; i < player.cards.size(); ++i) {
                             player.cards[i].isDragging = false;
                             //если ее рисуем и она на отбое то иним индекс для работы в update()
@@ -153,8 +161,15 @@ void run() {
                                 }
 
                             }
+                            
+                            
                         }
-                    }
+                        if (deck.back().checkCollision(player.cards.back())) {
+                                player.cards.push_back(pushCardGamers());
+                                player.cards.back().setPos(490 + 10 * 20, 650);
+                                deck.erase(deck.end() - 1);
+                                deck.back().isDragging = false;
+                        }
                     
                 }
                 /*здесь блок для перемещения карты, если она отметилась в событии мыши*/
@@ -166,12 +181,26 @@ void run() {
                             sf::Vector2f newPosition = worldPosition + player.cards[i].offset;
 
                             player.cards[i].setPos(newPosition);
+
+                            /*if (!player.cards[i].checkCollision(withdrawal.back())) {
+                                player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultX);
+                            }*/
                         }
+                    }
+                    if (deck.back().isDragging) {
+                        sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+                        sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+                        sf::Vector2f newPosition = worldPosition + deck.back().offset;
+
+                        deck.back().setPos(newPosition);
                     }
 
             }//inner while()//
                 
-        
+            if (player.cards.empty()) {
+                window.close();
+            }
+
              // isStep(withdrawal, player);
             window.clear();
 
@@ -208,7 +237,6 @@ void run() {
 
     void gameOver() {
 
-        //std::cout << "game over\n";
     }
 
 };
