@@ -3,44 +3,43 @@
 
 #include "DECK.h"                                                   
 
-class Player : public Hand {//наследуемся виртуально, класс жора без 2 копий hand
-public:
-    std::vector<Card> cards;
+class Jora{
 
-    void attack(Card& card) override {
+    class Hand {
+    public:
+        std::vector<Card> cards;
 
-    }
+        void attack() {
 
-    bool isEmptyCards() {
-        return cards.empty();
-    }
+        }
+    };
 
-};
+    class Player :public Hand {
+    public:
+        std::vector<Card> cards;
 
-class CPU :public Hand {
-public:
-    std::vector<Card> cards;
+        void attack(Card& card) {
 
-    void attack(Card& card) override {
+        }
 
-    }
+        bool isEmptyCards() {
+            return cards.empty();
+        }
 
-    bool isEmptyCards() {
-        return cards.empty();
-    }
-};
+    };
 
-class Jora {
-    Player player;
-    CPU cpu;
-	std::vector<Card> deck, withdrawal;
-	sf::Texture cardTexture;
- 
-	int draggedIndex = -1;//for drawing up cards
+    class CPU: public Hand {
+    public:
+        std::vector<Card> cards;
 
-	const int width = 1220, height = 900;
+        void attack(Card& card) {
 
-	sf::RenderWindow window;
+        }
+
+        bool isEmptyCards() {
+            return cards.empty();
+        }
+    };
 
     void pushCardWithdrawal() {
         if (deck.size() > 2) {
@@ -50,7 +49,7 @@ class Jora {
         //reshuffle method need her
     }
 
-    Card pushCardGamers() {                                    //отдаем карту игроку и удаляем из колоды
+    Card pushCardGamers() {                                    
         Card temp({ deck.back() });
 
         deck.erase(deck.end() - 1);
@@ -58,30 +57,52 @@ class Jora {
         return temp;
     }
 
+     bool isStep(Card withdrawal,Hand* gamer ) {
+        for (int i = 0; i < gamer->cards.size(); ++i) {
+            if (withdrawal.getRank() == gamer->cards[i].getRank()) {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    Player player;
+    CPU cpu;
+    std::vector<Card> deck, withdrawal;
+    sf::Texture cardTexture;
+
+    int draggedIndex = -1;//for drawing up cards
+    int clickedCardIndex = -1;
+
+    const int width = 1220, height = 900;
+
+    sf::RenderWindow window;
+
 public:
     Jora() :window(sf::VideoMode(width, height), "Jora", sf::Style::Close) {
 
-		// Инициализация игры, загрузка ресурсов и т.д.
+        // Инициализация игры, загрузка ресурсов и т.д.
 
-		if (!cardTexture.loadFromFile("src//card.png")) {
-			//std::cerr << "texture dont is open";
-		}
+        if (!cardTexture.loadFromFile("src//card.png")) {
+            //std::cerr << "texture dont is open";
+        }
         deck = creatingDeck(cardTexture);
 
         for (int i = 0; i < 3; ++i) {
             player.cards.push_back(pushCardGamers());
+            player.cards[i].setPos(490 + i * 20, 650);
             cpu.cards.push_back(pushCardGamers());
+            cpu.cards[i].setPos(490 + i * 20, 50);
         }
         pushCardWithdrawal();
-        withdrawal.back().setPos(500, 400);
+        withdrawal.back().setPos(0, 0);//(500, 380);
 
         for (int i = 0; i < deck.size(); ++i) {
-            deck[i].setPos(0 + i * 20, 0);
+            deck[i].setPos(0 + i * 20, 400);
         }
     }
 
-
-    void run() {
+void run() {
         window.setFramerateLimit(60);
         sf::Event event;
 
@@ -90,58 +111,100 @@ public:
                 if (event.type == sf::Event::Closed) {
                     window.close();
                 }
-            }
-#pragma region LOGIC GAME
-            //сделать рандомом. когда игра запускаеться или когда
-            bool isPlayerTurn = true;
+                if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2i pos = sf::Mouse::getPosition(window);
+                    sf::Vector2f worldPos = window.mapPixelToCoords(pos);
 
-            while (!player.isEmptyCards() || cpu.isEmptyCards()) {
+                    for (int index = 0; index < player.cards.size(); ++index) {
+                        if (player.cards[index].getSprite().getGlobalBounds().contains(worldPos)) {
+
+                            player.cards[index].isDragging = true;
+                            draggedIndex = index;
+
+                            player.cards[index].offset = player.cards[index].getSprite().getPosition() - worldPos;
+
+                            for (int i = 0; i < player.cards.size(); ++i) {
+                                if (i != index) {
+                                    player.cards[i].isDragging = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                /*блок когда мышь опущена, здесь перемещаем нашу карту с условием, если подходит иначе назад*/
+                else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+                    if (player.cards.empty()) {
+                            gameOver();
+                    }
+                    else {
+                        for (int i = 0; i < player.cards.size(); ++i) {
+                            player.cards[i].isDragging = false;
+                            //если ее рисуем и она на отбое то иним индекс для работы в update()
+                            if (player.cards[i].checkCollision(withdrawal.back())) {
+                                if (player.cards[i].getRank() == withdrawal.back().getRank() ||
+                                    player.cards[i].getSuit() == withdrawal.back().getSuit()) {
+                                    withdrawal.push_back(player.cards[i]);
+                                    withdrawal.back().setPos(0, 0);
+                                    //player.cards[i].setPos(withdrawal.back().getSprite().getPosition());
+                                    player.cards.erase(player.cards.begin() + i);
+                                }
+                                else {
+                                    player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultY);
+                                }
+
+                            }
+                        }
+                    }
+                    
+                }
+                /*здесь блок для перемещения карты, если она отметилась в событии мыши*/
+                    for (int i = 0; i < player.cards.size(); ++i) {
+                        if (player.cards[i].isDragging) {
+
+                            sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+                            sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+                            sf::Vector2f newPosition = worldPosition + player.cards[i].offset;
+
+                            player.cards[i].setPos(newPosition);
+                        }
+                    }
+
+            }//inner while()//
                 
-                if (isPlayerTurn) {
-                    switch (withdrawal.back().getRank()) {
-                    case Card::Ace:
-                        break;
-                    case Card::Six:
-                        player.cards.push_back(pushCardGamers());
-                        player.cards.push_back(pushCardGamers());
-                        break;
-                    case Card::Seven:
-                        cpu.cards.push_back(pushCardGamers());
-                        break;
-                    default:  player.attack(withdrawal.back()); break;
+        
+             // isStep(withdrawal, player);
+            window.clear();
+
+            withdrawal.back().draw(window);
+
+            if (!player.cards.empty()) {
+                for (int i = 0; i < player.cards.size(); ++i) {
+                    if (i != draggedIndex) {
+                        player.cards[i].draw(window);
                     }
                 }
-                else {
-                    switch (withdrawal.back().getRank()) {
-                    case Card::Ace:
-                        break;
-                    case Card::Six:
-                        player.cards.push_back(pushCardGamers());
-                        player.cards.push_back(pushCardGamers());
-                        break;
-                    case Card::Seven:
-                        cpu.cards.push_back(pushCardGamers());
-                        break;
-                    default:  player.attack(withdrawal.back());
-                    }
+                if (draggedIndex != -1 && draggedIndex < player.cards.size()) {
+                    player.cards[draggedIndex].draw(window);
                 }
-                isPlayerTurn = !isPlayerTurn;
             }
-#pragma endregion
+            
+            
 
-#pragma region RENDER()
-
+            for (int i = 0; i < cpu.cards.size(); ++i) {
+                cpu.cards[i].draw(window);
+            }
 
             for (int i = 0; i < deck.size(); ++i) {
                 deck[i].draw(window);
             }
 
-            withdrawal.back().draw(window);
-            window.display();
-        }
+            
 
-#pragma endregion
-    }
+            window.display();
+        }//outter while
+}
+
+    
 
     void gameOver() {
 

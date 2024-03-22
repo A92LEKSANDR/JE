@@ -13,6 +13,7 @@ public:
     enum Rank { Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King };
 
     bool isDragging = false;
+    bool isClicked = false;
     sf::Vector2f offset; // Смещение для корректного отображения спрайта при перетаскивании
     float coordDefaultX = 500, coordDefaultY = 600;
 
@@ -97,34 +98,6 @@ std::vector<Card> creatingDeck(sf::Texture& cardTexture) {
     
     return deck;                                               
 }
-
-class Hand {
-
-    virtual void attack(Card& cardAttack) = 0;
-
-public:
-
-    Hand() {}                           //init 36 cards               
-
-    // std::vector<Card> getDeck()const{
-    //     return deck;
-    // }
-
-    // void printCard(std::vector<Card> card){                //print all cards
-    //    for(Card& index : card){
-    //     std::cout << index << ' ';
-    //    }
-    // }
-
-    // Card inTable(){                                         //attack up cards in deck
-    //     return deck.back();
-    // }
-
-    // bool deckIsEmpty()const{                               //return true if card == 0 for reshuffle cards then player dont win
-    //     return deck.empty();
-    // }
-
-};
 
 
 #endif
