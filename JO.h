@@ -5,16 +5,16 @@
 
 class Jora{
 
-    class Hand {
+   /* class Hand {
     public:
         std::vector<Card> cards;
 
         void attack() {
 
         }
-    };
+    };*/
 
-    class Player :public Hand {
+    class Player {
     public:
         std::vector<Card> cards;
 
@@ -28,7 +28,7 @@ class Jora{
 
     };
 
-    class CPU: public Hand {
+    class CPU {
     public:
         std::vector<Card> cards;
 
@@ -57,9 +57,9 @@ class Jora{
         return temp;
     }
 
-     bool isStep(Card withdrawal,Hand* gamer ) {
+     bool isStep(Card withdrawal,Player* gamer ) {
         for (int i = 0; i < gamer->cards.size(); ++i) {
-            if (withdrawal.getRank() == gamer->cards[i].getRank()) {
+            if (withdrawal.getRank() == gamer->cards[i].getRank() || withdrawal.getSuit() == gamer->cards[i].getSuit()) {
                 return true;
             }
             return false;
@@ -90,12 +90,22 @@ public:
 
         for (int i = 0; i < 3; ++i) {
             player.cards.push_back(pushCardGamers());
-            player.cards[i].setPos(490 + i * 20, 650);
+
+            player.cards[i].coordDefaultX = 490 + (i*20);
+            player.cards[i].coordDefaultY = 650;
+
+            player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultY);
+
             cpu.cards.push_back(pushCardGamers());
             cpu.cards[i].setPos(490 + i * 20, 50);
         }
+        ////////////////////withdrawal
         pushCardWithdrawal();
-        withdrawal.back().setPos(0, 0);//(500, 380);
+        withdrawal.back().coordDefaultX = 500;
+        withdrawal.back().coordDefaultY = 380;
+
+        withdrawal.back().setPos(500, 380);//(500, 380);
+        ///////////////////////////////////////////////
 
         for (int i = 0; i < deck.size(); ++i) {
             deck[i].setPos(800, 400);
@@ -111,21 +121,18 @@ void run() {
                 if (event.type == sf::Event::Closed) {
                     window.close();
                 }
+
                 if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                     sf::Vector2i pos = sf::Mouse::getPosition(window);
                     sf::Vector2f worldPos = window.mapPixelToCoords(pos);
-#pragma region DECK
-                    for (int i = 0; i < player.cards.size(); ++i) {
-                        if (player.cards[i].getRank() != withdrawal.back().getRank() ||
-                            player.cards[i].getSuit() != withdrawal.back().getSuit()) {
-                            if (deck.back().getSprite().getGlobalBounds().contains(worldPos)) {
-                                deck.back().offset = deck.back().getSprite().getPosition() - worldPos;
-                                deck.back().isDragging = true;
-                            }
-                        }
+
+#pragma region DECK //activity deck.back()
+                    if (deck.back().getSprite().getGlobalBounds().contains(worldPos)) {
+                        deck.back().isDragging = true;
+                        deck.back().offset =deck.back().getSprite().getPosition() - worldPos;
                     }
 #pragma endregion
-#pragma region PLAYER
+#pragma region PLAYER //помечаем карту для перемещения если координаты на ней
                     for (int index = 0; index < player.cards.size(); ++index) {
                         if (player.cards[index].getSprite().getGlobalBounds().contains(worldPos)) {
                             
@@ -143,35 +150,65 @@ void run() {
                     }
 #pragma endregion
                 }
+
                 /*блок когда мышь опущена, здесь перемещаем нашу карту с условием, если подходит иначе назад*/
                 else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-                        for (int i = 0; i < player.cards.size(); ++i) {
+                    std::vector<Card> deleteCard;
+#pragma region PLAYER 
+                    for (int i = 0; i < player.cards.size(); ++i) {
                             player.cards[i].isDragging = false;
-                            //если ее рисуем и она на отбое то иним индекс для работы в update()
+                            //если было пересечение с обоем
+          
                             if (player.cards[i].checkCollision(withdrawal.back())) {
+                                //есть условия
                                 if (player.cards[i].getRank() == withdrawal.back().getRank() ||
                                     player.cards[i].getSuit() == withdrawal.back().getSuit()) {
+
                                     withdrawal.push_back(player.cards[i]);
-                                    withdrawal.back().setPos(0, 0);
+                                    deleteCard.push_back(player.cards[i]);
+
+                                    withdrawal.back().setPos(500, 380);                                 //расположение добавленой карты
                                     //player.cards[i].setPos(withdrawal.back().getSprite().getPosition());
-                                    player.cards.erase(player.cards.begin() + i);
+ 
                                 }
+                                //позиция по умолчанию
                                 else {
                                     player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultY);
                                 }
 
                             }
-                            
-                            
-                        }
-                        if (deck.back().checkCollision(player.cards.back())) {
-                                player.cards.push_back(pushCardGamers());
-                                player.cards.back().setPos(490 + 10 * 20, 650);
-                                deck.erase(deck.end() - 1);
-                                deck.back().isDragging = false;
-                        }
+                    }
+                    for (const auto& card : deleteCard) {
+                        player.cards.erase(std::remove(player.cards.begin(), player.cards.end(), card), player.cards.end());
+                    }
+#pragma endregion
+#pragma region DECK
+                    if (deck.back().checkCollision(player.cards.back())) {
+                        deck.back().isDragging = false;
+
+                        player.cards.push_back(deck.back());
+                        deck.erase(deck.end() - 1);
+
+                        player.cards.back().setPos(player.cards[player.cards.size()-1].coordDefaultX+20, 650);
+                        //        
+                        //        //deck.back().setPos(600, 600);
+
+                                
+                        
+                        //        //player.cards.back().isDragging = false;
+                        //}
+                        //else {
+                        //    deck.back().setPos(deck.back().coordDefaultX, deck.back().coordDefaultY);
+                     }
+                    else {
+                        deck.back().setPos(800, 400);
+                        deck.back().isDragging = false;
+                    }
+#pragma endregion
                     
-                }
+                   
+                }//else if
+
                 /*здесь блок для перемещения карты, если она отметилась в событии мыши*/
                     for (int i = 0; i < player.cards.size(); ++i) {
                         if (player.cards[i].isDragging) {
@@ -197,10 +234,6 @@ void run() {
 
             }//inner while()//
                 
-            if (player.cards.empty()) {
-                window.close();
-            }
-
              // isStep(withdrawal, player);
             window.clear();
 
@@ -223,16 +256,16 @@ void run() {
                 cpu.cards[i].draw(window);
             }
 
-            for (int i = 0; i < deck.size(); ++i) {
-                deck[i].draw(window);
+            if (!deck.empty()) {
+                for (int i = 0; i < deck.size(); ++i) {
+                    deck[i].draw(window);
+                }
             }
 
-            
 
             window.display();
         }//outter while
 }
-
     
 
     void gameOver() {
