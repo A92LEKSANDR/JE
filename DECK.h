@@ -17,6 +17,8 @@ public:
     sf::Vector2f offset; // Смещение для корректного отображения спрайта при перетаскивании
     float coordDefaultX = 500, coordDefaultY = 600;
 
+    const int width = 147, height = 214;
+
     Card() = default;
 
     Card(Rank rank, Suit suit, sf::Texture& t) :m_rank(rank), m_suit(suit) {
@@ -27,9 +29,28 @@ public:
         sprite.scale(1.0f, 1.0f);
     }
 
+    // Перегрузка оператора присваивания
+    Card& operator=(const Card& other) {
+        if (this != &other) { // Проверяем, что это не присваивание самому себе
+            // Выполняем копирование данных из объекта other в текущий объект
+            // Например:
+            this->m_rank = other.m_rank;
+            this->m_suit = other.m_suit;
+            // Копируем остальные члены класса, если они есть
+        }
+        return *this; // Возвращаем ссылку на текущий объект
+    }
+
     sf::Sprite& getSprite() {
         return sprite;
     }
+
+    //int getWidth()const {
+    //    return width;
+    //}
+    //int getHeight()const {
+    //    return height;
+    //}
 
     Suit getSuit()const {
         return m_suit;
