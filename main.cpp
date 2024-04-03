@@ -1,9 +1,7 @@
-#include "JORA.h"
+#include "JO.h"
 
 int main() {
-
-	Jora jora;
-	jora.run();
+	Game jora;
 
 	return 0;
 }

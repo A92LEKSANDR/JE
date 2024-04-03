@@ -1,279 +1,87 @@
 #ifndef JORA
 #define JORA
 
-#include "DECK.h"                                                   
+#include "DECK.h"
+#include <iostream>
 
-class Jora{
+class Game {
+private:
+    std::vector<Card> deck;
+    std::vector<Card> discardPile;
+    std::vector<Card> player1Hand;
+    std::vector<Card> player2Hand;
+    sf::Texture textureCard;
 
-   /* class Hand {
-    public:
-        std::vector<Card> cards;
+    int currentPlayer;
 
-        void attack() {
+    void InitializeDeck() {
+        deck = creatingDeck(textureCard);                                               //инициализация колоды, уже рандом
+    }
 
-        }
-    };*/
+    void InitializeDescardPile() {                                                      //инициализация отбой
+        discardPile.push_back(deck.back());
+        deck.erase(deck.end() - 1);
+    }
 
-    class Player {
-    public:
-        std::vector<Card> cards;
-
-        void attack(Card& card) {
-
-        }
-
-        bool isEmptyCards() {
-            return cards.empty();
-        }
-
-    };
-
-    class CPU {
-    public:
-        std::vector<Card> cards;
-
-        void attack(Card& card) {
-
-        }
-
-        bool isEmptyCards() {
-            return cards.empty();
-        }
-    };
-
-    void pushCardWithdrawal() {
-        if (deck.size() > 2) {
-            withdrawal.push_back(deck.back());
+    void pushBackCard(std::vector<Card>& player) {                                      //верхняя карта игроку и удаляем из колоды
+        if (!deck.empty()) {
+            player.push_back(deck.back());
             deck.erase(deck.end() - 1);
         }
-        //reshuffle method need her
     }
 
-    Card pushCardGamers() {                                    
-        Card temp({ deck.back() });
-
-        deck.erase(deck.end() - 1);
-
-        return temp;
-    }
-
-     bool isStep(Card withdrawal,Player* gamer ) {                                  
-        for (int i = 0; i < gamer->cards.size(); ++i) {
-            if (withdrawal.getRank() == gamer->cards[i].getRank() || withdrawal.getSuit() == gamer->cards[i].getSuit()) {
-                return true;
-            }
-            return false;
+    void DealHands() {                                                                  // Здесь происходит раздача карт игрокам
+        for (int i = 0; i < 3; ++i) {
+            pushBackCard(player1Hand);
+            pushBackCard(player2Hand);
         }
     }
 
-    Player player;
-    CPU cpu;
-    std::vector<Card> deck, withdrawal;
-    sf::Texture cardTexture;
+    void SwitchPlayer() {                                                               // Смена текущего игрока
+        currentPlayer = (currentPlayer == 1) ? 2 : 1;
+    }
 
-    int draggedIndex = -1;                                                      //for drawing up cards
-    int clickedCardIndex = -1;
+    void DrawDiscardPile(sf::RenderWindow& window) {
+        // Отрисовка отбоя
+        // Например, отрисовка карт из discardPile
+        discardPile.back().draw(window);
+    }
 
-    const int width = 1220, height = 900;
+    void DrawPlayerHands(sf::RenderWindow& window) {
+        // Отрисовка руки игроков
+        // Например, отрисовка карт из player1Hand и player2Hand
+    }
 
-    sf::RenderWindow window;
+    void GameLoop() {
+        sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Game");
+
+        while (window.isOpen()) {
+            sf::Event event;
+            while (window.pollEvent(event)) {
+                if (event.type == sf::Event::Closed)
+                    window.close();
+            }
+
+            window.clear();
+
+            DrawDiscardPile(window);
+            DrawPlayerHands(window);
+
+            window.display();
+        }
+    }
 
 public:
-    Jora() :window(sf::VideoMode(width, height), "Jora", sf::Style::Close) {
+    Game() : currentPlayer(1) {
 
-                                                                                // Инициализация игры, загрузка ресурсов и т.д.
-
-        if (!cardTexture.loadFromFile("src//card.png")) {
-                                                                                 //std::cerr << "texture dont is open";
+        if (!textureCard.loadFromFile("src//card.png")) {
+            std::cerr << "load error texture card";
         }
-        deck = creatingDeck(cardTexture);                                       
 
-        for (int i = 0; i < 3; ++i) {
-            player.cards.push_back(pushCardGamers());
-
-                                
-            player.cards[i].coordDefaultX = 490 + (i * 20);                      //запись в переменную координат карт игрока по X
-            player.cards[i].coordDefaultY = 650;                                 //                                             Y
-
-            
-            player.cards[i].setPos(player.cards[i].coordDefaultX, 
-                player.cards[i].coordDefaultY);                                   //Установка координат карт игрока
-
-            cpu.cards.push_back(pushCardGamers());
-            cpu.cards[i].setPos(490 + i * 20, 50);                                //Установка координат карт сpu
-        }
-                                                                                  //отбой карта параметры
-        pushCardWithdrawal();
-        withdrawal.back().coordDefaultX = 500;
-        withdrawal.back().coordDefaultY = 380;
-        withdrawal.back().setPos(500, 380);                                      //Установка координат отбоя(500, 380);
-
-
-        for (int i = 0; i < deck.size(); ++i) {                                  //Установка координат колоды
-            deck[i].setPos(800, 400);
-        }
+        InitializeDeck();
+        DealHands();
+        GameLoop();
     }
-
-void run() {
-        window.setFramerateLimit(60);
-        sf::Event event;
-
-        while (window.isOpen()) {                                               //пока окно не закроем, программа работает
-            
-                while (window.pollEvent(event)) {                                     //еще один цикл срабатывает если есть события
-                    if (event.type == sf::Event::Closed) {
-                        window.close();
-                    }
-
-                    if (event.type == sf::Event::MouseButtonPressed &&
-                        event.mouseButton.button == sf::Mouse::Left) {
-                        sf::Vector2i pos = sf::Mouse::getPosition(window);
-                        sf::Vector2f worldPos = window.mapPixelToCoords(pos);
-
-                        //нужны условия для активации карты колоды
-#pragma region DECK //activity deck.back()
-                        if (deck.back().getSprite().getGlobalBounds().contains(worldPos)) {
-                            deck.back().isDragging = true;
-                            deck.back().offset = deck.back().getSprite().getPosition() - worldPos;
-                        }
-#pragma endregion
-#pragma region PLAYER 
-                        for (int index = 0; index < player.cards.size(); ++index) {
-                            if (player.cards[index].getSprite().getGlobalBounds().contains(worldPos)) {
-
-                                player.cards[index].isDragging = true;
-                                draggedIndex = index;
-
-                                player.cards[index].offset = player.cards[index].getSprite().getPosition() - worldPos;
-
-                                for (int i = 0; i < player.cards.size(); ++i) {
-                                    if (i != index) {
-                                        player.cards[i].isDragging = false;
-                                    }
-                                }
-                            }
-                        }
-#pragma endregion
-                    }                                                                   //********************************
-                    /*******************************************************************/
-
-                    else if (event.type == sf::Event::MouseButtonReleased &&
-                        event.mouseButton.button == sf::Mouse::Left) {                //событие когда отпускаем кнопку мыши
-                        std::vector<Card> deleteCard;
-#pragma region PLAYER 
-                        for (int i = 0; i < player.cards.size(); ++i) {
-                            player.cards[i].isDragging = false;
-
-                            if (player.cards[i].checkCollision(withdrawal.back())) {//если было пересечение с обоем
-                                if (player.cards[i].getRank() == withdrawal.back().getRank() ||
-                                    player.cards[i].getSuit() == withdrawal.back().getSuit()) {
-
-                                    withdrawal.push_back(player.cards[i]);
-                                    deleteCard.push_back(player.cards[i]);
-
-                                    withdrawal.back().setPos(500, 380);          //расположение добавленой карты
-
-
-                                }
-                                //позиция по умолчанию
-                                else {
-                                    player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultY);
-                                }
-
-                            }
-                        }
-                        for (const auto& card : deleteCard) {
-                            player.cards.erase(std::remove(player.cards.begin(), player.cards.end(), card), player.cards.end());
-                        }
-#pragma endregion
-#pragma region DECK
-                        //если было пересечение с картой.back() игрока
-                        if (deck.back().checkCollision(player.cards.back())) {
-                            deck.back().isDragging = false;
-
-                            player.cards.push_back(deck.back());
-                            deck.erase(deck.end() - 1);
-
-                            //позиция карты в колоде игрока
-                            /*нужен алгоритм для коректной добавки карт и их смещения в случаее переполнения*/
-                            //наверное нужен большой спрайт
-                            player.cards.back().setPos(player.cards.back().getSprite().getPosition().x - 50, 650);
-                        }
-                        else {
-                            deck.back().setPos(800, 400);
-                            deck.back().isDragging = false;
-                        }
-#pragma endregion
-                    }
-                    /*******************************************************************/
-
-                    for (int i = 0; i < player.cards.size(); ++i) {
-                        if (player.cards[i].isDragging) {
-
-                            sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-                            sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
-                            sf::Vector2f newPosition = worldPosition + player.cards[i].offset;
-
-                            player.cards[i].setPos(newPosition);
-
-                            /*if (!player.cards[i].checkCollision(withdrawal.back())) {
-                                player.cards[i].setPos(player.cards[i].coordDefaultX, player.cards[i].coordDefaultX);
-                            }*/
-                        }
-                    }
-                    if (deck.back().isDragging) {
-                        sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-                        sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
-                        sf::Vector2f newPosition = worldPosition + deck.back().offset;
-
-                        deck.back().setPos(newPosition);
-                    }
-
-                }                                                                     //inner while()
-                 /*******************************************************************/
-
-                /*где здесь нужна логика хода игроков, то что вверху будет работать бесконечно*/
-
-                window.clear();
-
-                withdrawal.back().draw(window);
-
-                if (!player.cards.empty()) {
-                    for (int i = 0; i < player.cards.size(); ++i) {
-                        if (i != draggedIndex) {
-                            player.cards[i].draw(window);
-                        }
-                    }
-                    if (draggedIndex != -1 && draggedIndex < player.cards.size()) {
-                        player.cards[draggedIndex].draw(window);
-                    }
-                }
-
-
-
-                for (int i = 0; i < cpu.cards.size(); ++i) {
-                    cpu.cards[i].draw(window);
-                }
-
-                if (!deck.empty()) {
-                    for (int i = 0; i < deck.size(); ++i) {
-                        deck[i].draw(window);
-                    }
-                }
-
-
-                window.display();
-            
-
-        }//***********************************************************outter while
-}//*******************************************************************this is exit method run()                                           
-    
-
-    void gameOver() {
-
-    }
-
-};//******************************************************************JORA CLASS
-
+};
 
 #endif
